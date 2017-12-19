@@ -38,6 +38,8 @@ clc
 clear
 close all
 matlabrc
+addpath('Data');
+addpath('Library');
 
 versionstr = 'NaveGo, release v1.0';
 
@@ -73,14 +75,14 @@ fprintf('NaveGo: dataset duration is %.2f hours or %.2f minutes or %.2f seconds.
 
 [stim300] = allan_imu (stim300);
 
-stim300_arw = stim300.arw
-stim300_vrw = stim300.vrw
+stim300_arw = stim300.arw;
+stim300_vrw = stim300.vrw;
 
-stim300_ab_drift = stim300.ab_drift
-stim300_gb_drift = stim300.gb_drift
+stim300_ab_drift = stim300.ab_drift;
+stim300_gb_drift = stim300.gb_drift;
 
-stim300_ab_corr = stim300.ab_corr
-stim300_gb_corr = stim300.gb_corr
+stim300_ab_corr = stim300.ab_corr;
+stim300_gb_corr = stim300.gb_corr;
 
 %% ALLAN VARIANCE FOR SIMULATED IMU
 
@@ -168,11 +170,11 @@ ustrain.wb = wb;
 
 [ustrain_allan] = allan_imu (ustrain);
 
-ustrain_allan_arw = ustrain_allan.arw
-ustrain_allan_vrw = ustrain_allan.vrw
+ustrain_allan_arw = ustrain_allan.arw;
+ustrain_allan_vrw = ustrain_allan.vrw;
 
-ustrain_allan_ab_drift = ustrain_allan.ab_drift
-ustrain_allan_gb_drift = ustrain_allan.gb_drift
+ustrain_allan_ab_drift = ustrain_allan.ab_drift;
+ustrain_allan_gb_drift = ustrain_allan.gb_drift;
 
-ustrain_allan_ab_corr = ustrain_allan.ab_corr
-ustrain_allan_gb_corr = ustrain_allan.gb_corr
+ustrain_allan_ab_corr = ustrain_allan.ab_corr;
+ustrain_allan_gb_corr = ustrain_allan.gb_corr;
