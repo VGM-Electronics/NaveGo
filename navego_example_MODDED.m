@@ -20,14 +20,16 @@ versionstr = 'NaveGo, release v1.0';
 fprintf('\n%s.\n', versionstr)
 fprintf('\nNaveGo: starting simulation ... \n')
 
-%% 1) CODE EXECUTION PARAMETERS
+
+%------------------------------------------------------------------------------
+% 1) CODE EXECUTION PARAMETERS
 
 % Comment any of the following parameters in order to NOT execute a particular portion of code
 
 % GPS_DATA            = 'ON';                                                 % Simulate GPS data
 % IMU_DATA            = 'ON';                                                 % Simulate ADIS16405 IMU data
 
-IMU_INS             = 'ON';                                                 % Execute INS/GPS integration for ADIS16405 IMU
+% IMU_INS             = 'ON';                                                 % Execute INS/GPS integration for ADIS16405 IMU
 
 PLOT                = 'ON';                                                 % Plot results.
 
@@ -38,7 +40,9 @@ if (~exist('IMU_DATA','var')), IMU_DATA = 'OFF'; end
 if (~exist('IMU_INS','var')),  IMU_INS  = 'OFF'; end
 if (~exist('PLOT','var')),      PLOT      = 'OFF'; end
 
-%% 2) CONVERSION CONSTANTS
+
+%------------------------------------------------------------------------------
+% 2) CONVERSION CONSTANTS
 
 G                   = 9.814;                                                % Gravity constant, m/s^2
 G2MSS               = G;                                                    % g to m/s^2
@@ -50,7 +54,9 @@ R2D                 = (180/pi);                                             % ra
 KT2MS               = 0.514444;                                             % knot to m/s
 MS2KMH              = 3.6;                                                  % m/s to km/h
 
-%% 3) LOAD REFERENCE DATA
+
+%------------------------------------------------------------------------------
+% 3) LOAD REFERENCE DATA
 
 fprintf('NaveGo: loading reference dataset from a trajectory generator... \n')
 
@@ -73,7 +79,9 @@ load ref.mat
 %            [a11 a21 a31 a12 a22 a32 a13 a23 a33].
 %      freq: sampling frequency (Hz).
 
-%% 4) ADIS16405 IMU error profile
+
+%------------------------------------------------------------------------------
+% 4) ADIS16405 IMU error profile
 
 % IMU data structure:
 %         t: Ix1 time vector (seconds).
@@ -119,7 +127,9 @@ IMU                = imu_si_errors(ADIS16405, dt);                          % Tr
 IMU.ini_align_err	= [3 3 10] .* D2R;                                      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
 IMU.ini_align      = [ref.roll(1) ref.pitch(1) ref.yaw(1)];                 % Initial attitude align at t(1) (radians).
 
-%% 5) Garmin 5-18 Hz GPS error profile
+
+%------------------------------------------------------------------------------
+% 5) Garmin 5-18 Hz GPS error profile
 
 % GPS data structure:
 %         t: Mx1 time vector (seconds).
@@ -138,7 +148,9 @@ gps.stdv        	= 0.1 * KT2MS .* ones(1,3);                             % GPS v
 gps.larm            = zeros(3,1);                                           % GPS lever arm from IMU to GPS, X-fwd, Y-right, Z-down (meters)
 gps.freq            = 5;                                                    % GPS operation frequency (Hz)
 
-%% 6) SIMULATE GPS
+
+%------------------------------------------------------------------------------
+% 6) SIMULATE GPS
 
 rng('shuffle')                                                              % Reset pseudo-random seed
 
@@ -159,7 +171,9 @@ else
     load gps.mat
 end
 
-%% 7) SIMULATE IMU
+
+%------------------------------------------------------------------------------
+% 7) SIMULATE IMU
 
 rng('shuffle')                                                              % Reset pseudo-random seed
 
@@ -185,7 +199,9 @@ else
     load IMU.mat
 end
 
-%% 8) INS/GPS integration using IMU
+
+%------------------------------------------------------------------------------
+% 8) INS/GPS integration using IMU
 
 if strcmp(IMU_INS, 'ON')
     
@@ -231,7 +247,9 @@ else
     load IMU_e.mat
 end
 
-%% 9) Interpolate INS/GPS dataset 
+
+%------------------------------------------------------------------------------
+% 9) Interpolate INS/GPS dataset 
 
 % INS/GPS estimates and GPS data are interpolated according to the
 % reference dataset.
@@ -239,24 +257,34 @@ end
 [IMU_ref, ref_1]    = navego_interpolation (IMU_e, ref);
 [gps_ref, ref_g]    = navego_interpolation (gps, ref);
 
-%% 10) Print navigation time
+
+%------------------------------------------------------------------------------
+% 10) Print navigation time
 
 to                	 = (ref.t(end) - ref.t(1));
 
 fprintf('\nNaveGo: navigation time is %.2f minutes or %.2f seconds. \n', (to/60), to)
 
-%% 11) Print RMSE from IMU
+
+%------------------------------------------------------------------------------
+% 11) Print RMSE from IMU
 
 print_rmse (IMU_ref, gps_ref, ref_1, ref_g, 'INS/GPS IMU');
 
-%% 12) PLOT
+
+%------------------------------------------------------------------------------
+% 12) PLOT
 
 if (strcmp(PLOT,'ON'))
-    
+    f               = figure('units', 'normalized', 'outerposition', [0 0 1 1]);
+    tgroup          = uitabgroup('Parent', f);
     sig3_rr         = abs(IMU_e.Pp(:, 1:22:end).^(0.5)) .* 3;               % Only take diagonal elements from Pp
     
+    
     % TRAJECTORY
-    figure;
+    
+    tab1            = uitab('Parent', tgroup, 'Title', 'TRAJECTORY');
+    axes('Parent', tab1);
     plot3(ref.lon.*R2D, ref.lat.*R2D, ref.h)
     hold on
     plot3(ref.lon(1).*R2D, ref.lat(1).*R2D, ref.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
@@ -265,16 +293,20 @@ if (strcmp(PLOT,'ON'))
     xlabel('Longitude [deg.]')
     ylabel('Latitude [deg.]')
     zlabel('Altitude [m]')
-    grid
+    grid on
+   
     
     % ATTITUDE
-    figure;
+    
+    tab2            = uitab('Parent', tgroup, 'Title', 'ATTITUDE');
+    axes('Parent', tab2);
     subplot(311)
     plot(ref.t, R2D.*ref.roll, '--k', IMU_e.t, R2D.*IMU_e.roll,'-b');
     xlabel('Time [s]')
 	ylabel('[deg]')
     legend('REF', 'IMU');
     title('ROLL');
+    grid on
     
     subplot(312)
     plot(ref.t, R2D.*ref.pitch, '--k', IMU_e.t, R2D.*IMU_e.pitch,'-b');
@@ -282,6 +314,7 @@ if (strcmp(PLOT,'ON'))
 	ylabel('[deg]')
     legend('REF', 'IMU');
     title('PITCH');
+    grid on
     
     subplot(313)
     plot(ref.t, R2D.* ref.yaw, '--k', IMU_e.t, R2D.*IMU_e.yaw,'-b');
@@ -289,9 +322,13 @@ if (strcmp(PLOT,'ON'))
 	ylabel('[deg]')
     legend('REF', 'IMU');
     title('YAW');
+    grid on
+    
     
     % ATTITUDE ERRORS
-    figure;
+    
+    tab3            = uitab('Parent', tgroup, 'Title', 'ATTITUDE ERRORS');
+    axes('Parent', tab3);
     subplot(311)
     plot(IMU_e.t, (IMU_ref.roll - ref_1.roll).*R2D, '-b');
     hold on
@@ -300,6 +337,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[deg]')    
     legend('IMU', '3\sigma');
     title('ROLL ERROR');
+    grid on
     
     subplot(312)
     plot(IMU_e.t, (IMU_ref.pitch - ref_1.pitch).*R2D, '-b');
@@ -309,6 +347,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[deg]')  
     legend('IMU', '3\sigma');
     title('PITCH ERROR');
+    grid on
     
     subplot(313)
     plot(IMU_e.t, (IMU_ref.yaw - ref_1.yaw).*R2D, '-b');
@@ -318,15 +357,20 @@ if (strcmp(PLOT,'ON'))
     ylabel('[deg]')  
     legend('IMU', '3\sigma');
     title('YAW ERROR');
+    grid on
+    
     
     % VELOCITIES
-    figure;
+    
+    tab4            = uitab('Parent', tgroup, 'Title', 'VELOCITIES');
+    axes('Parent', tab4);
     subplot(311)
     plot(ref.t, ref.vel(:,1), '--k', gps.t, gps.vel(:,1),'-c', IMU_e.t, IMU_e.vel(:,1),'-b');
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU');
     title('NORTH VELOCITY');
+    grid on
     
     subplot(312)
     plot(ref.t, ref.vel(:,2), '--k', gps.t, gps.vel(:,2),'-c', IMU_e.t, IMU_e.vel(:,2),'-b');
@@ -334,6 +378,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU');
     title('EAST VELOCITY');
+    grid on
     
     subplot(313)
     plot(ref.t, ref.vel(:,3), '--k', gps.t, gps.vel(:,3),'-c', IMU_e.t, IMU_e.vel(:,3),'-b');
@@ -341,9 +386,13 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU');
     title('DOWN VELOCITY');
+    grid on
+    
     
     % VELOCITIES ERRORS
-    figure;
+    
+    tab5            = uitab('Parent', tgroup, 'Title', 'VELOCITIES ERRORS');
+    axes('Parent', tab5);
     subplot(311)
     plot(gps_ref.t, (gps_ref.vel(:,1) - ref_g.vel(:,1)), '-c');
     hold on
@@ -353,6 +402,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m/s]')
     legend('GPS', 'IMU', '3\sigma');
     title('VELOCITY NORTH ERROR');
+    grid on
     
     subplot(312)
     plot(gps_ref.t, (gps_ref.vel(:,2) - ref_g.vel(:,2)), '-c');
@@ -363,6 +413,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m/s]')
     legend('GPS', 'IMU', '3\sigma');
     title('VELOCITY EAST ERROR');
+    grid on
     
     subplot(313)
     plot(gps_ref.t, (gps_ref.vel(:,3) - ref_g.vel(:,3)), '-c');
@@ -373,15 +424,20 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m/s]')
     legend('GPS', 'IMU', '3\sigma');
     title('VELOCITY DOWN ERROR');
+    grid on
+    
     
     % POSITION
-    figure;
+    
+    tab6            = uitab('Parent', tgroup, 'Title', 'POSITION');
+    axes('Parent', tab6);
     subplot(311)
     plot(ref.t, ref.lat .*R2D, '--k', gps.t, gps.lat.*R2D, '-c', IMU_e.t, IMU_e.lat.*R2D, '-b');
     xlabel('Time [s]')
     ylabel('[deg]')
     legend('REF', 'GPS', 'IMU');
     title('LATITUDE');
+    grid on
     
     subplot(312)
     plot(ref.t, ref.lon .*R2D, '--k', gps.t, gps.lon.*R2D, '-c', IMU_e.t, IMU_e.lon.*R2D, '-b');
@@ -389,6 +445,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[deg]')
     legend('REF', 'GPS', 'IMU');
     title('LONGITUDE');
+    grid on
     
     subplot(313)
     plot(ref.t, ref.h, '--k', gps.t, gps.h, '-c', IMU_e.t, IMU_e.h, '-b');
@@ -396,21 +453,25 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m]')
     legend('REF', 'GPS', 'IMU');
     title('ALTITUDE');
+    grid on
     
-    % POSITION ERRORS    
-    [RN,RE]  = radius(IMU_ref.lat, 'double');
-    LAT2M_1 = RN + IMU_ref.h;
-    LON2M_1 = (RE + IMU_ref.h).*cos(IMU_ref.lat);
     
-    [RN,RE]  = radius(gps.lat, 'double');
-    LAT2M_G = RN + gps.h;
-    LON2M_G = (RE + gps.h).*cos(gps.lat);
+    % POSITION ERRORS
     
-    [RN,RE]  = radius(gps_ref.lat, 'double');
-    LAT2M_GR = RN + gps_ref.h;
-    LON2M_GR = (RE + gps_ref.h).*cos(gps_ref.lat);
+    [RN,RE]         = radius(IMU_ref.lat, 'double');
+    LAT2M_1         = RN + IMU_ref.h;
+    LON2M_1         = (RE + IMU_ref.h).*cos(IMU_ref.lat);
     
-    figure;
+    [RN,RE]         = radius(gps.lat, 'double');
+    LAT2M_G         = RN + gps.h;
+    LON2M_G         = (RE + gps.h).*cos(gps.lat);
+    
+    [RN,RE]         = radius(gps_ref.lat, 'double');
+    LAT2M_GR        = RN + gps_ref.h;
+    LON2M_GR        = (RE + gps_ref.h).*cos(gps_ref.lat);
+    
+    tab7            = uitab('Parent', tgroup, 'Title', 'POSITION ERRORS');
+    axes('Parent', tab7);
     subplot(311)
     plot(gps_ref.t,  LAT2M_GR.*(gps_ref.lat - ref_g.lat), '-c')
     hold on
@@ -420,6 +481,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m]')
     legend('GPS', 'IMU', '3\sigma');
     title('LATITUDE ERROR');
+    grid on
     
     subplot(312)
     plot(gps_ref.t, LON2M_GR.*(gps_ref.lon - ref_g.lon), '-c')
@@ -430,6 +492,7 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m]')
     legend('GPS', 'IMU', '3\sigma');
     title('LONGITUDE ERROR');
+    grid on
     
     subplot(313)
     plot(gps_ref.t, (gps_ref.h - ref_g.h), '-c')
@@ -439,5 +502,6 @@ if (strcmp(PLOT,'ON'))
     xlabel('Time [s]')
     ylabel('[m]')
     legend('GPS', 'IMU', '3\sigma');
-    title('ALTITUDE ERROR');    
+    title('ALTITUDE ERROR');  
+    grid on
 end
